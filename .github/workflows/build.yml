@@ -61,8 +61,11 @@ jobs:
             --format macosapp \
             --support-dir "$(pwd)/SupportDirectory"
 
+          # Zip the .app
+          zip -r "${SAFE_NAME}.app.zip" "${APP_NAME}"
+
           # Cleanup
-          rm -rf SupportDirectory support.zip
+          rm -rf SupportDirectory support.zip "${APP_NAME}"
           echo "Built ${APP_NAME}"
 
       - name: Upload Artifacts
@@ -71,4 +74,3 @@ jobs:
           name: ${{ matrix.widget }}-export
           path: |
             *.zip
-            *.app
