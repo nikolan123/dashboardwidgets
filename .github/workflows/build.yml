@@ -1,0 +1,74 @@
+name: Build & Export Widgets
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: macos-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          # Generate a JSON matrix from index.json
+          WIDGETS=$(jq -c '[keys[]]' index.json)
+          echo "matrix=$WIDGETS" >> $GITHUB_OUTPUT
+
+  build:
+    needs: prepare
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        widget: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Widget Porting Toolkit
+        run: |
+          brew tap nikolan123/tap
+          brew install --cask widget-porting-toolkit
+
+      - name: Package as .wdgt
+        run: |
+          WIDGET_DIR="${{ matrix.widget }}"
+          SAFE_NAME=$(echo "$WIDGET_DIR" | tr -d ' ')
+          cd "$WIDGET_DIR"
+          zip -r "../${SAFE_NAME}.zip" .
+          cd ..
+          echo "Zipped ${WIDGET_DIR}"
+
+      - name: Package as macOS App
+        run: |
+          WIDGET_DIR="${{ matrix.widget }}"
+          SAFE_NAME=$(echo "$WIDGET_DIR" | tr -d ' ')
+          APP_NAME=$(echo "$SAFE_NAME" | sed 's/.wdgt$/.app/')
+
+          # Download Support Directory
+          curl -L "https://widgets.nikolan.net/WidgetResources_10.9.5.zip" -o support.zip
+          unzip -q support.zip -d SupportDirectory
+
+          # Run CLI Exporter
+          /Applications/Widget\ Porting\ Toolkit.app/Contents/MacOS/Widget\ Porting\ Toolkit \
+            --export \
+            --input "./${WIDGET_DIR}" \
+            --output "./${APP_NAME}" \
+            --format macosapp \
+            --support-dir "$(pwd)/SupportDirectory"
+
+          # Cleanup
+          rm -rf SupportDirectory support.zip
+          echo "Built ${APP_NAME}"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.widget }}-export
+          path: |
+            *.zip
+            *.app
