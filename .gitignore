@@ -1,0 +1,6 @@
+.cache
+.uv-cache
+.DS_Store
+.identity
+*.pyc
+__pycache__

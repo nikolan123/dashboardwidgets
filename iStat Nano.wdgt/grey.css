@@ -1,0 +1,75 @@
+.base {
+	background-image: url(skins/grey/main_base_grey.png);
+	height: 149px;
+	width: 246px;
+	z-index: -1;
+}
+
+#modeselectorbg {
+	opacity: 0;
+	height: 149px;
+	width: 246px;
+	z-index: 10;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	background-image: url(./skins/pink/modesel_background_pink.png);
+}
+
+.bar, .bar2 {
+	background-image: url(./skins/blue/bar_blue.png);
+	position: absolute;
+	left: 21px;
+	width: 0px;
+	height: 10px;
+	z-index: 2;
+}
+
+.cpudots {
+	background-image: url(./skins/blue/cpu_dots.png);
+	position: absolute;
+	left: 0px;
+	width: 131px;
+	height: 56px;
+	z-index: 2;
+}
+
+.memorydots {
+	background-image: url(./skins/blue/memory_dots.png);
+	position: absolute;
+	left: 0px;
+	width: 131px;
+	height: 70px;
+	z-index: 2;
+}
+
+.advancedbarright {
+	left: 123px;
+}
+
+.advancedbar0 {
+	background-image: url(./skins/blue/bar_blue.png);
+	position: absolute;
+	left: 21px;
+	width: 0px;
+	height: 10px;
+	z-index: 2;
+}
+
+.advancedbar1 {
+	background-image: url(./skins/blue/bar_1.png);
+	position: absolute;
+	left: 21px;
+	width: 0px;
+	height: 10px;
+	z-index: 2;
+}
+
+.advancedbar2 {
+	background-image: url(./skins/blue/bar_2.png);
+	position: absolute;
+	left: 21px;
+	width: 0px;
+	height: 10px;
+	z-index: 2;
+}

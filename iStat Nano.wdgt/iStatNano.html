@@ -1,0 +1,881 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-ca">
+<head>
+	<title>iStat nano</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	<link href="isn.css" rel="stylesheet" type="text/css" />
+	<link id='skin_css' href="blue.css" rel="stylesheet" type="text/css" />
+	<script>
+		var smart_timer;
+	</script>
+	<script src='scripts/iStatNanoShim.js'></script>
+	<script src='workers.js'></script>
+	<script src='functions.js'></script>
+	<script src='animation.js'></script>
+	<script src='setup.js'></script>
+	<script src='dash.js'></script>
+</head>
+<body onload="iStatNano.startWhenReady(setup)">
+<div id="server_waiting" style="position:absolute;left:0;top:0;width:246px;height:149px;z-index:9999;background:#111;color:#ddd;font-family:Helvetica,Arial,sans-serif;text-align:center;box-sizing:border-box;padding:14px 16px;font-size:12px;line-height:16px;">
+	<div style="color:#3ea0ff;font-weight:bold;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">iStat nano</div>
+	<div>Waiting for the local data server.</div>
+	<div style="color:#999;margin-top:6px;line-height:14px;">Run <code>python3 -B istat_server.py</code> from this widget folder.</div>
+	<div id="server_start_button" onclick="iStatNano.startLocalDataServer()" style="display:inline-block;margin-top:10px;padding:4px 12px;border:1px solid #2f6fb3;border-radius:4px;background:linear-gradient(#2a77c6,#1e5f9d);color:#fff;font-weight:bold;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.18);">Start Python Server</div>
+	<div id="server_waiting_message" style="color:#7a7a7a;margin-top:6px;min-height:14px;font-size:11px;line-height:12px;">Patched for modern macOS by Niko</div>
+</div>
+<div id="front" style='display:block'>
+	<div class='base'></div>
+	<div class='rim'></div>
+	<div id='headerClickTarget' onclick='toggleModeSelector()'></div>
+	<div class='sectionContainer' id='overviewSection'>
+		<img class='header' src='./images/header_overview.png' />
+		<div class='overviewBG'></div>
+		<div class='dividerOverview'></div>
+		<div id='overview_graphs_simple' style='display:none'>
+			<div class='bar' id='overview_cpu' style='top:46px;left:21px;;'></div>
+			<div class='bar' id='overview_mem' style='top:79px;left:21px'></div>
+		</div>
+		<div id='overview_graphs_advanced' style='display:none'>
+			<div class='advancedbar0' id='overview_cpu_user' style='top:46px;left:21px;'></div>
+			<div class='advancedbar1' id='overview_cpu_sys' style='top:46px;left:21px;'></div>
+			<div class='advancedbar2' id='overview_cpu_nice' style='top:46px;left:21px;'></div>
+			<div class='advancedbar0' id='overview_mem_wired' style='top:79px;left:21px'></div>
+			<div class='advancedbar1' id='overview_mem_active' style='top:79px;left:21px'></div>
+		</div>
+			<div class='bar' id='overview_disk' style='top:112px;left:21px'></div>
+		<div id='overview_cpushadow' class='barShadow' style='top:46px;'></div>
+		<div id='overview_memoryshadow' class='barShadow' style='top:79px;'></div>
+		<div id='overview_disksshadow' class='barShadow' style='top:112px;'></div>
+		<div class='line1 left ellipsis'>CPU</div>
+		<div class='line1 left ellipsis' style='top:64px;'>Memory</div>
+		<div class='line6 left ellipsis' id='overview_diskname' style='width:110px;'></div>
+		<div class='line1 ellipsis' style='left:143px;width:85px;'><b>Temp: </b><span id='overview_temp'></span></div>
+		<div class='line2 ellipsis' style='left:143px;width:85px;'><b>Fan: </b><span id='overview_fan'></span></div>
+		<div class='line3 ellipsis' style='left:143px;width:85px;'><b>In: </b><span id='overview_in'></span></div>
+		<div class='line4 ellipsis' style='left:143px;width:85px;'><b>Out: </b><span id='overview_out'></span></div>
+		<div class='line6 ellipsis' style='left:143px;width:85px;'><b>Uptime:</b></div>
+		<div id='overview_uptime' class='line7 ellipsis' style='left:143px;width:85px;'></div>
+		<div class='mask overview_mask' style=''></div>
+	</div>
+	
+	<div class='sectionContainer' id='cpuSection'>
+		<img class='header' src='./images/header_cpu.png' />
+		<div id='cpu_base' style='background-image:url(./images/cpu_bg_4cores.png);position:absolute;top:72px;left:21px;width:204px;height:51px;z-index:1'></div>
+		<div id='cpu_section_simple'  style='display:none;'>
+			<div class='line1 left ellipsis' style='width:90px;'><b>User: </b><span id='cpu_user_simple'></span></div>
+			<div class='line2 left ellipsis' style='width:90px;'><b>Nice: </b><span id='cpu_nice_simple'></span></div>
+			<div class='line1 left ellipsis' style='width:90px;left:123px;'><b>System: </b><span id='cpu_system_simple'></span></div>
+			<div class='line2 left ellipsis' style='width:90px;left:123px;'><b>Idle: </b><span id='cpu_idle_simple'></span></div>
+			<div style='top:64px;' class='divider'></div>
+			<div id='cpu_4bar_simple'>
+				<div class='bar' id='cpu_simple_4bar0' style='top:73px;'></div>
+				<div class='bar' id='cpu_simple_4bar1' style='top:86px;'></div>
+				<div class='bar' id='cpu_simple_4bar2' style='top:99px;'></div>
+				<div class='bar' id='cpu_simple_4bar3' style='top:112px;'></div>
+				<div id='cpu_simple_4barshadow0' class='barShadow' style='top:73px;'></div>
+				<div id='cpu_simple_4barshadow1' class='barShadow' style='top:86px;'></div>
+				<div id='cpu_simple_4barshadow2' class='barShadow' style='top:99px;'></div>
+				<div id='cpu_simple_4barshadow3' class='barShadow' style='top:112px;'></div>
+			</div>
+			<div id='cpu_8bar_simple' style='display:none;'>
+				<div class='bar' id='cpu_simple_8bar0' style='top:73px;'></div>
+				<div class='bar' id='cpu_simple_8bar1' style='top:86px;'></div>
+				<div class='bar' id='cpu_simple_8bar2' style='top:99px;'></div>
+				<div class='bar' id='cpu_simple_8bar3' style='top:112px;'></div>
+				<div class='bar2' id='cpu_simple_8bar4' style='top:73px;left:125px;'></div>
+				<div class='bar2' id='cpu_simple_8bar5' style='top:86px;left:125px;'></div>
+				<div class='bar2' id='cpu_simple_8bar6' style='top:99px;left:125px;'></div>
+				<div class='bar2' id='cpu_simple_8bar7' style='top:112px;left:125px;'></div>
+				<div id='cpu_simple_8barshadow0' class='barShadow' style='top:73px;'></div>
+				<div id='cpu_simple_8barshadow1' class='barShadow' style='top:86px;'></div>
+				<div id='cpu_simple_8barshadow2' class='barShadow' style='top:99px;'></div>
+				<div id='cpu_simple_8barshadow3' class='barShadow' style='top:112px;'></div>
+				<div id='cpu_simple_8barshadow4' class='barShadow' style='top:73px;'></div>
+				<div id='cpu_simple_8barshadow5' class='barShadow' style='top:86px;'></div>
+				<div id='cpu_simple_8barshadow6' class='barShadow' style='top:99px;'></div>
+				<div id='cpu_simple_8barshadow7' class='barShadow' style='top:112px;'></div>
+			</div>
+		</div>
+		<div id='cpu_section_advanced' style='display:none;'>
+			<div class='cpudots'></div>
+			<div class='line1 left ellipsis' style='width:90px;left:31px;'><b>User: </b><span id='cpu_user_advanced'></span></div>
+			<div class='line2 left ellipsis' style='width:90px;left:31px;'><b>System: </b><span id='cpu_system_advanced'></span></div>
+			<div class='line1 left ellipsis' style='width:90px;left:134px;'><b>Nice: </b><span id='cpu_nice_advanced'></span></div>
+			<div class='line2 left ellipsis' style='width:90px;left:134px;'><b>Idle: </b><span id='cpu_idle_advanced'></span></div>
+			<div style='top:64px;' class='divider'></div>
+			<div id='cpu_4bar_advanced'>
+				<div class='advancedbar0' id='cpu_advanced_4bar0_part0' style='top:73px;'></div>
+				<div class='advancedbar0' id='cpu_advanced_4bar1_part0' style='top:86px;'></div>
+				<div class='advancedbar0' id='cpu_advanced_4bar2_part0' style='top:99px;'></div>
+				<div class='advancedbar0' id='cpu_advanced_4bar3_part0' style='top:112px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_4bar0_part1' style='top:73px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_4bar1_part1' style='top:86px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_4bar2_part1' style='top:99px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_4bar3_part1' style='top:112px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_4bar0_part2' style='top:73px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_4bar1_part2' style='top:86px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_4bar2_part2' style='top:99px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_4bar3_part2' style='top:112px;'></div>
+				<div id='cpu_advanced_4barshadow0' class='barShadow' style='top:73px;'></div>
+				<div id='cpu_advanced_4barshadow1' class='barShadow' style='top:86px;'></div>
+				<div id='cpu_advanced_4barshadow2' class='barShadow' style='top:99px;'></div>
+				<div id='cpu_advanced_4barshadow3' class='barShadow' style='top:112px;'></div>
+			</div>
+			<div id='cpu_8bar_advanced' style='display:none;'>
+				<div class='advancedbar0' id='cpu_advanced_8bar0_part0' style='top:73px;'></div>
+				<div class='advancedbar0' id='cpu_advanced_8bar1_part0' style='top:86px;'></div>
+				<div class='advancedbar0' id='cpu_advanced_8bar2_part0' style='top:99px;'></div>
+				<div class='advancedbar0' id='cpu_advanced_8bar3_part0' style='top:112px;'></div>
+				<div class='advancedbar0 advancedbarright' id='cpu_advanced_8bar4_part0' style='top:73px;'></div>
+				<div class='advancedbar0 advancedbarright' id='cpu_advanced_8bar5_part0' style='top:86px;'></div>
+				<div class='advancedbar0 advancedbarright' id='cpu_advanced_8bar6_part0' style='top:99px;'></div>
+				<div class='advancedbar0 advancedbarright' id='cpu_advanced_8bar7_part0' style='top:112px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_8bar0_part1' style='top:73px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_8bar1_part1' style='top:86px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_8bar2_part1' style='top:99px;'></div>
+				<div class='advancedbar1' id='cpu_advanced_8bar3_part1' style='top:112px;'></div>
+				<div class='advancedbar1 advancedbarright' id='cpu_advanced_8bar4_part1' style='top:73px;'></div>
+				<div class='advancedbar1 advancedbarright' id='cpu_advanced_8bar5_part1' style='top:86px;'></div>
+				<div class='advancedbar1 advancedbarright' id='cpu_advanced_8bar6_part1' style='top:99px;'></div>
+				<div class='advancedbar1 advancedbarright' id='cpu_advanced_8bar7_part1' style='top:112px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_8bar0_part2' style='top:73px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_8bar1_part2' style='top:86px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_8bar2_part2' style='top:99px;'></div>
+				<div class='advancedbar2' id='cpu_advanced_8bar3_part2' style='top:112px;'></div>
+				<div class='advancedbar2 advancedbarright' id='cpu_advanced_8bar4_part2' style='top:73px;'></div>
+				<div class='advancedbar2 advancedbarright' id='cpu_advanced_8bar5_part2' style='top:86px;'></div>
+				<div class='advancedbar2 advancedbarright' id='cpu_advanced_8bar6_part2' style='top:99px;'></div>
+				<div class='advancedbar2 advancedbarright' id='cpu_advanced_8bar7_part2' style='top:112px;'></div>
+				<div id='cpu_advanced_8barshadow0' class='barShadow' style='top:73px;'></div>
+				<div id='cpu_advanced_8barshadow1' class='barShadow' style='top:86px;'></div>
+				<div id='cpu_advanced_8barshadow2' class='barShadow' style='top:99px;'></div>
+				<div id='cpu_advanced_8barshadow3' class='barShadow' style='top:112px;'></div>
+				<div id='cpu_advanced_8barshadow4' class='barShadow' style='top:73px;'></div>
+				<div id='cpu_advanced_8barshadow5' class='barShadow' style='top:86px;'></div>
+				<div id='cpu_advanced_8barshadow6' class='barShadow' style='top:99px;'></div>
+				<div id='cpu_advanced_8barshadow7' class='barShadow' style='top:112px;'></div>
+			</div>
+		</div>
+		<div id='cpu_mask' class='mask' style='background-image:url(./images/cpu_mask_1cores.png);top:72px;height:51px;'></div>
+	</div>
+
+	<div class='sectionContainer' id='memorySection'>
+		<img class='header' src='./images/header_memory.png' />
+		<div class='memoryBG'></div>
+		<div style='position:absolute;left:0px;' id='memory_text_container'>
+			<div class='line1 left ellipsis' style='left:22px;top:33px;width:95px;'><b>Wired: </b><span id='mem_wired'></span></div>
+			<div class='line2 left ellipsis' style='left:22px;top:46px;width:95px;'><b>Active: </b><span id='mem_active'></span></div>
+			<div class='line3 left ellipsis' style='left:125px;top:33px;width:95px;'><b>Used: </b><span id='mem_used'></span></div>
+			<div class='line1 left ellipsis' style='left:125px;top:46px;width:95px;'><b>Free: </b><span id='mem_free'></span></div>
+			<div class='line2 left ellipsis' style='left:22px;top:59px;width:95px;'><b>Inactive: </b><span id='mem_inactive'></span></div>
+			<div class='line3 left ellipsis' style='left:125px;top:59px;width:95px;'><b>Swap: </b><span id='mem_swap'></span></div>
+		</div>
+		<div id='memory_section_simple' style='display:none;'>
+			<div style='top:76px;' class='divider'></div>
+			<div id='mem_bar' style='top:87px;' class='bar'></div>
+			<div id='mem_bar_shadow' class='barShadow' style='top:87px;'></div>
+		</div>
+		<div id='memory_section_advanced' style='display:none;'>
+			<div class='memorydots'></div>
+			<div style='top:76px;' class='divider'></div>
+			<div id='mem_bar_wired' style='top:87px;' class='advancedbar0'></div>
+			<div id='mem_bar_active' style='top:87px;' class='advancedbar1'></div>
+			<div id='mem_bar_shadow_advanced' class='barShadow' style='top:87px;'></div>
+		</div>
+		<div style='top:105px;' class='divider'></div>
+		<div class='line7 left ellipsis'><b>Page Ins: </b><span id='mem_pageins'></span></div>
+		<div class='line7 left ellipsis' style='left:123px;'><b>Page Outs: </b><span id='mem_pageouts'></span></div>
+		<div class='mask' style='background-image:url(./images/memory_mask.png);top:86px;'></div>
+	</div>
+
+	<div class='sectionContainer' id='disksSection'>
+		<img class='header' src='./images/header_disks.png' />
+		<div class='disksBG'></div>
+		<div style='position:absolute;top:30px;' id='disk0'>
+			<img id='disk_icon0' src='./images/disk.tiff' height='24' width='24' style='position:absolute;left:200px;top:5px;' />
+			<div id='disk_name0' class='diskName ellipsis'></div>
+			<div id='disk_space0' class='diskSpace'></div>
+			<div id='disk_bar0' style='top:18px;' class='bar'></div>
+			<div id='disk_barshadow0' style='top:18px;' class='barShadow'></div>
+		</div>
+		<div style='position:absolute;top:62px;' id='disk1' style='display:none;'>
+			<div style='top:0px;' class='divider'></div>
+			<img id='disk_icon1' src='./images/disk.tiff' height='24' width='24' style='position:absolute;left:200px;top:5px;' />
+			<div id='disk_name1' class='diskName ellipsis'></div>
+			<div id='disk_space1' class='diskSpace'></div>
+			<div id='disk_bar1' style='top:18px;' class='bar'></div>
+			<div id='disk_barshadow1' style='top:18px;' class='barShadow'></div>
+		</div>
+		<div style='position:absolute;top:94px;' id='disk2' style='display:none;'>
+			<div style='top:0px;' class='divider'></div>
+			<img id='disk_icon2' src='./images/disk.tiff' height='24' width='24' style='position:absolute;left:200px;top:5px;' />
+			<div id='disk_name2' class='diskName ellipsis'></div>
+			<div id='disk_space2' class='diskSpace'></div>
+			<div id='disk_bar2' style='top:18px;' class='bar'></div>
+			<div id='disk_barshadow2' style='top:18px;' class='barShadow'></div>
+		</div>
+		<div id='disk_mask' class='mask' style='background-image:url(./images/bar_disks_mask3.png);top:47px;height:76px;'></div>
+	</div>
+
+	<div class='sectionContainer' id='networkSection'>
+		<img class='header' src='./images/header_network.png' />
+		<div id='network_available' style='position:absolute;'>
+			<img id='network_icon' src='' height='20' width='22' style='position:absolute;left:22px;top:35px;' />
+			<div class='line1 leftindent'><span style='color:#838383;'>Name: </span><span id='network_name'></span></div>
+			<div class='line2 leftindent' style='top: 45px;'><span style='color:#838383;'>IP: </span><span id='network_ip'></span></div>
+			<div class='line3 leftindent' style='top: 57px;'><span style='color:#838383;'>External IP: </span><span id='external_ip'>Fetching...</span></div>
+			<div style='top:71px;' class='divider'></div>
+			<div class='line4 leftindent' style='top: 75px;'><span style='color:#838383;'>In: </span><span id='network_in'></span></div>
+			<div class='line5 leftindent' style='top: 87px;'><span style='color:#838383;'>Out: </span><span id='network_out'></span></div>
+			<div class='line6 leftindent' style='top: 99px;'><span style='color:#838383;'>Total In: </span><span id='network_totalin'></span></div>
+			<div class='line7 leftindent'><span style='color:#838383;'>Total Out: </span><span id='network_totalout'></span></div>
+		</div>
+		<div id='no_network' style='position:absolute;display:none'>
+			<div class='center line4'>No active network adapaters found</div>
+		</div>
+
+	</div>
+
+	<div class='sectionContainer' id='processesSection'>
+		<img class='header' src='./images/header_processes.png' />
+		<img id='process_icon0' class='processIcon' style='top:35px;' />
+		<img id='process_icon1' class='processIcon' style='top:53px;' />
+		<img id='process_icon2' class='processIcon' style='top:71px;' />
+		<img id='process_icon3' class='processIcon' style='top:89px;' />
+		<img id='process_icon4' class='processIcon' style='top:107px;' />
+		<div id='process_name0' style='top:37px;' class='processName ellipsis'></div>
+		<div id='process_name1' style='top:55px;' class='processName ellipsis'></div>
+		<div id='process_name2' style='top:73px;' class='processName ellipsis'></div>
+		<div id='process_name3' style='top:91px;' class='processName ellipsis'></div>
+		<div id='process_name4' style='top:109px;' class='processName ellipsis'></div>
+
+		<div id='process_cpu0' style='top:37px' class='processCPU'></div>
+		<div id='process_cpu1' style='top:55px' class='processCPU'></div>
+		<div id='process_cpu2' style='top:73px' class='processCPU'></div>
+		<div id='process_cpu3' style='top:91px' class='processCPU'></div>
+		<div id='process_cpu4' style='top:109px' class='processCPU'></div>
+	</div>
+
+	<div class='sectionContainer' id='uptimeSection'>
+		<img class='header' src='./images/header_uptime.png' />
+		<div class='line1 center'><b>Uptime</b></div>
+		<div id='uptime' class='line2 center'></div>
+		<div class='divider' style='top:64px;'></div>
+		<div class='line4 center'><b>Load Averages</b></div>
+		<div id='loadavg' class='line5 center'></div>
+		<div class='divider' style='top:103px;'></div>
+		<div id='processes' class='line7 center'></div>
+	</div>
+
+	<div class='sectionContainer' id='batterySection'>
+		<img class='header' src='./images/header_battery.png' />
+		<div id='battery_available' style='position:absolute;'>
+			<div class='sectionBG' style='background-image:url(./images/battery_bg.png);top:92px;'></div>
+			<div id='battery_bar' class='bar' style='top:93px;'></div>
+			<div class='line1 left fullwidth ellipsis' style='width:120px;'><b>Cycles: </b><span id='battery_cycles'></span></div>
+			<div class='line2 left fullwidth ellipsis' style='width:125px;'><b>Health: </b><span id='battery_health'></span></div>
+			<div class='line3 left fullwidth ellipsis' style='width:140px;'><b>Power Source: </b><span id='battery_source'></span></div>
+			<div class='divider' style='top:79px;'></div>
+			<div id='battery_time' class='line7 left' style='width:150px;'></div>
+			<div id='battery_percentage' class='line7 right'>0%</div>
+			<div class='mask' style='background-image:url(./images/battery_mask.png);top:92px;'></div>
+			<img id='battery_source_image' src='./images/battery_mains.png' style='position:absolute;top:24px;left:134px;' />
+		</div>
+		<div id='no_battery' style='position:absolute;display:none'>
+			<div class='center line4'>System does not appear to be a laptop</div>
+		</div>	</div>
+
+	<div class='sectionContainer' id='fansSection'>
+		<img class='header' src='./images/header_fans.png' />
+		<div id='fan_available' style='position:absolute;'>
+			<div id='fan_name0' class='leftcolumn line1 ellipsis'></div>
+			<div id='fan_name1' class='leftcolumn line2 ellipsis'></div>
+			<div id='fan_name2' class='leftcolumn line3 ellipsis'></div>
+			<div id='fan_name3' class='leftcolumn line4 ellipsis'></div>
+			<div id='fan_name4' class='leftcolumn line5 ellipsis'></div>
+			<div id='fan_name5' class='leftcolumn line6 ellipsis'></div>
+			<div id='fan_name6' class='leftcolumn line7 ellipsis'></div>
+	
+			<div id='fan_value0' class='rightcolumn line1 ellipsis'></div>
+			<div id='fan_value1' class='rightcolumn line2 ellipsis'></div>
+			<div id='fan_value2' class='rightcolumn line3 ellipsis'></div>
+			<div id='fan_value3' class='rightcolumn line4 ellipsis'></div>
+			<div id='fan_value4' class='rightcolumn line5 ellipsis'></div>
+			<div id='fan_value5' class='rightcolumn line6 ellipsis'></div>
+			<div id='fan_value6' class='rightcolumn line7 ellipsis'></div>
+		</div>
+		<div id='no_fans' style='position:absolute;display:none'>
+			<div class='center line4'>No fan sensors found</div>
+		</div>
+	</div>
+
+	<div class='sectionContainer' id='tempsSection'>
+		<img class='header' src='./images/header_temps.png' />
+		<div id='temps_available' style='position:absolute;'>
+			<div id='temp_name0' class='leftcolumn line1 ellipsis'></div>
+			<div id='temp_name1' class='leftcolumn line2 ellipsis'></div>
+			<div id='temp_name2' class='leftcolumn line3 ellipsis'></div>
+			<div id='temp_name3' class='leftcolumn line4 ellipsis'></div>
+			<div id='temp_name4' class='leftcolumn line5 ellipsis'></div>
+			<div id='temp_name5' class='leftcolumn line6 ellipsis'></div>
+			<div id='temp_name6' class='leftcolumn line7 ellipsis'></div>
+	
+			<div id='temp_value0' class='rightcolumn line1 ellipsis'></div>
+			<div id='temp_value1' class='rightcolumn line2 ellipsis'></div>
+			<div id='temp_value2' class='rightcolumn line3 ellipsis'></div>
+			<div id='temp_value3' class='rightcolumn line4 ellipsis'></div>
+			<div id='temp_value4' class='rightcolumn line5 ellipsis'></div>
+			<div id='temp_value5' class='rightcolumn line6 ellipsis'></div>
+			<div id='temp_value6' class='rightcolumn line7 ellipsis'></div>
+		</div>
+		<div id='no_temps' style='position:absolute;display:none'>
+			<div class='center line4'>No temp sensors found</div>
+		</div>
+	</div>
+	<div id='modeselectorcontainer' style='display:block;'>
+	<div class='modeContainer'></div>
+	<div class='modeButton' id='button0' onclick="selectSection(overviewSection,20,32, 0, 'overview')"></div>
+	<div class='modeButton' id='button1' onclick="selectSection(cpuSection,20,51,2, 'cpu')"></div>
+	<div class='modeButton' id='button2' onclick="selectSection(memorySection,20,70,4, 'mem')"></div>
+	<div class='modeButton' id='button3' onclick="selectSection(disksSection,20,89,6, 'hd')"></div>
+	<div class='modeButton' id='button4' onclick="selectSection(networkSection,20,108,8, 'net')"></div>
+	<div class='modeButton' id='button5' onclick="selectSection(processesSection,124,32,1, 'processes')"></div>
+	<div class='modeButton' id='button6' onclick="selectSection(uptimeSection,124,51,3, 'uptime')"></div>
+	<div class='modeButton' id='button7' onclick="selectSection(batterySection,124,70,5, 'battery')"></div>
+	<div class='modeButton' id='button8' onclick="selectSection(fansSection,124,89,7, 'fans')"></div>
+	<div class='modeButton' id='button9' onclick="selectSection(tempsSection,124,108,9, 'temps')"></div>
+	<div id='modeButtonHighlight'></div>
+	
+	<div id='help' onclick='if(isSelectorVisible) { widget.openURL("http://islayer.com/support/?p=23");hideModeSelectorWithoutAnimation();forceWait = true }'></div>
+	<div id='info' style='background-image:url(./images/modesel_prefs.png)' onclick='if(isSelectorVisible) { showbackside();this.style.background="url(./images/modesel_prefs.png)" }' onmouseover='this.style.background="url(./images/modesel_prefs_rollie.png)"' onmouseout='this.style.background="url(./images/modesel_prefs.png)"'></div>
+	<div id='modeselectorbg'>
+		<img class='header' src='./images/header_modesel.png' />
+	</div>
+	</div>
+	<img id='ipWindow' src='./images/window_ipcopied.png' style='position:absolute;top:0px;left:0px;z-index:12;display:none;' />
+
+</div>
+
+<div id='behind' style='width:256px;height:452px;display:none;'>
+	<div style='position:absolute;top:446px;left:20px;width:100px;height:22px;cursor:pointer' onclick='widget.openURL("http://www.islayer.com");'></div>
+	<div style='background-image:url(./images/back/back_top.png);height:63px;width:256px;position:relative;'>
+		<img id='tab_image0' src='./images/back/tabs_general_on.png' onclick='selectTab(0);this.src="./images/back/tabs_general_on.png"' style='position:absolute;top:41px;left:20px;' onmouseover='if(shouldToggleImageForTab(0)) { this.src = "./images/back/tabs_general_rollie.png" }'  onmouseout='if(shouldToggleImageForTab(0)) { this.src = "./images/back/tabs_general.png" }'/>
+		<img id='tab_image1' src='./images/back/tabs_sections.png' onclick='selectTab(1);this.src="./images/back/tabs_sections_on.png"' style='position:absolute;top:41px;left:93px;' onmouseover='if(shouldToggleImageForTab(1)) { this.src = "./images/back/tabs_sections_rollie.png" }'  onmouseout='if(shouldToggleImageForTab(1)) { this.src = "./images/back/tabs_sections.png" }'>
+		<img id='tab_image2' src='./images/back/tabs_updates.png' onclick='selectTab(2);this.src="./images/back/tabs_updates_on.png"' style='position:absolute;top:41px;left:165px;' onmouseover='if(shouldToggleImageForTab(2)) { this.src = "./images/back/tabs_updates_rollie.png" }'  onmouseout='if(shouldToggleImageForTab(2)) { this.src = "./images/back/tabs_updates.png" }'>
+	</div>
+
+	<div id='tab_general' style='background-image:url(./images/back/back_general.png);height:113px;width:256px;positon:absolute;top:63px;display:block;'>
+	
+		<div id='intelModuleButton' onclick='intelButtonClick()' onmouseover='intelButtonOver()' onmouseout='intelButtonOut()' style='display:none;position:absolute;background-image:url(./images/back/button_install_done.png);height:17px;width:212px;top:174px;left:22px;'></div>
+	
+		<select style='position:absolute;top:70px;left:137px;width:96px;' id='animationMenu' onchange='changeAnimation(this.options[this.selectedIndex].text)'>
+			<option value='on'>On</option>
+			<option value='off'>Off</option>
+		</select>
+	
+		<select style='position:absolute;top:89px;left:137px;width:96px;' id='barModeMenu' onchange='changeBarMode(this.options[this.selectedIndex])'>
+			<option value='0'>Simple</option>
+			<option value='1'>Detailed</option>
+		</select>
+	
+		<select style='position:absolute;top:108px;left:137px;width:96px;' id='degreesMenu' onchange='changeDegrees(this.selectedIndex)'>
+			<option value='c'>Celsius</option>
+			<option value='f'>Fahrenheit</option>
+			<option value='k'>Kelvin</option>
+		</select>
+		<select style='position:absolute;top:127px;left:137px;width:96px;' id='skinMenu' onchange='changeSkin(this.options[this.selectedIndex])';>
+			<option value='blue'>Blue</option>
+			<option value='graphite'>Graphite</option>
+			<option value='green'>Green</option>
+			<option value='grey'>Grey</option>
+			<option value='pink'>Pink</option>
+			<option value='putty'>Putty</option>
+			<option value='red'>Red</option>
+		</select>
+
+		<select style='position:absolute;top:146px;left:137px;width:96px;' id='smartTimerMenu' onchange='changeSmartTimer(this.options[this.selectedIndex])'>
+			<option value='0'>Off</option>
+			<option value='1'>5 mins</option>
+			<option value='2'>15 mins</option>
+			<option value='3'>60 mins</option>
+		</select>
+	
+		<div class='ellipsis' style='position:absolute;top:75px;left:140px;width:78px;' id='animationMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:132px;left:140px;width:78px;' id='skinMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:113px;left:140px;width:78px;' id='degreesMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:94px;left:140px;width:78px;' id='barsMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:151px;left:140px;width:78px;' id='smartTimerMenuText'></div>
+	</div>
+
+	<div id='tab_sections' style='background-image:url(./images/back/back_sections.png);height:151px;width:256px;position:relative;display:none;'>
+		<select style='position:absolute;top:7px;left:137px;width:96px;' id='disk0Menu' onchange='changeDisk0(this.options[this.selectedIndex].value)'></select>
+		<select style='position:absolute;top:26px;left:137px;width:96px;' id='disk1Menu' onchange='changeDisk1(this.options[this.selectedIndex].value)'></select>
+		<select style='position:absolute;top:45px;left:137px;width:96px;' id='disk2Menu' onchange='changeDisk2(this.options[this.selectedIndex].value)'></select>
+		<select style='position:absolute;top:64px;left:137px;width:96px;' id='tempsMenu' onchange='changePrimaryTempSensor(this.options[this.selectedIndex].value)'></select>
+		<select style='position:absolute;top:83px;left:137px;width:96px;' id='fansMenu' onchange='changePrimaryFanSensor(this.options[this.selectedIndex].value)'></select>
+		<select style='position:absolute;top:102px;left:137px;width:96px;' id='networkMenu' onchange='changePrimaryNetworkInterface(this.options[this.selectedIndex].value)'></select>
+		<select style='position:absolute;top:121px;left:137px;width:96px;' id='processesMenu' onchange='changeProcessesMode(this.options[this.selectedIndex])'>
+			<option value='cpu'>CPU Usage</option>
+			<option value='mem'>Memory Usage</option>
+		</select>
+		
+		<div class='ellipsis' style='position:absolute;top:12px;left:140px;width:78px;' id='disk0MenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:31px;left:140px;width:78px;' id='disk1MenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:50px;left:140px;width:78px;' id='disk2MenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:69px;left:140px;width:78px;' id='tempSensorMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:88px;left:140px;width:78px;' id='fanSensorMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:107px;left:140px;width:78px;' id='networkInterfaceMenuText'></div>
+		<div class='ellipsis' style='position:absolute;top:126px;left:140px;width:78px;' id='processesMenuText'></div>
+	</div>
+
+	<div id='tab_update' style='background-image:url(./images/back/back_updates.png);height:56px;width:256px;position:relative;display:none;'>
+		<div class='update' onclick='checkForUpdate(1)'></div>
+		<select style='position:relative;top:27px;left:137px;width:96px;' id='updateCheckerMenu' onchange='changeUpdateChecker(this.options[this.selectedIndex])'>
+			<option value='on'>Daily</option>
+			<option value='off'>Off</option>
+		</select>
+		<div class='ellipsis' style='position:absolute;top:31px;left:140px;width:78px;' id='updateMenuText'></div>
+	</div>
+	
+	<div style='background-image:url(./images/back/back_bottom.png);height:139px;width:256px;position:relative;'>
+		<div class='done' style='background-image:url(./images/back/button_done.png)' onclick='doneMouseUp();this.style.background="url(./images/back/button_done.png)"' onmouseover='this.style.background="url(./images/back/button_done_rollie.png)"' onmouseout='this.style.background="url(./images/back/button_done.png)"'></div>
+		<div class='paypal' onclick='widget.openURL("http://www.islayer.com/paypal.php");'></div>
+	</div>
+
+</div>
+
+<div id='intelInstallWindow' style='display:none;position:absolute;width:246px;height:149px;background-image:url(images/window_install.png);z-index:999;top:0px;left:0px'>
+	<div style="margin-top:92px;margin-left:59px;">
+		<div id="no" onclick='hideElement(document.getElementById("intelInstallWindow"))'></div>
+		<div id="yes" onclick='intelButtonClick();hideElement(document.getElementById("intelInstallWindow"))'></div>
+	</div>
+</div>
+
+<div id='updateWindowNew' style='display:none;position:absolute;width:246px;height:149px;background-image:url(images/versioncheck/window_update.png);z-index:1000;top:0px;left:0px'>
+	<div style="margin-top:92px;margin-left:59px;">
+		<div id="no" onclick='hideElement(document.getElementById("updateWindowNew"))'></div>
+		<div id="yes" onclick='widget.openURL("http://www.islayer.com/index.php?op=item&id=21");hideElement(document.getElementById("updateWindowNew"))'></div>
+	</div>
+</div>
+<div id='updateWindowCurrent' style='display:none;position:absolute;width:246px;height:149px;background-image:url(images/versioncheck/window_noupdate.png);z-index:1000;top:56px;left:5px'>
+	<div style="margin-top:92px;margin-left:92px;">
+		<div id="ok" onclick='hideElement(document.getElementById("updateWindowCurrent"))'></div>
+	</div>
+</div>
+
+</body>
+
+<script>
+	var is_hidden = false;
+	var displayTimer = null;
+	var isIntel = iStatNano.isIntel();
+
+	var updateCheckerTimer = null;
+	
+	if(!widget.preferenceForKey("updateChecker"))
+		widget.setPreferenceForKey("on","updateChecker");
+
+	if(!widget.preferenceForKey("smart_timer"))
+		widget.setPreferenceForKey("2","smart_timer");
+
+	if(widget.preferenceForKey("updateChecker") == "on") {
+		checkForUpdate(0);
+		updateCheckerTimer = setInterval("checkForUpdate(0)",86400000);
+	}
+
+	if(widget.preferenceForKey("smart_timer") != '0'){
+		iStatNano.setShouldMonitorSMARTTemps(1)
+		iStatNano.setNeedsSMARTUpdate();
+	}
+
+	switch(widget.preferenceForKey("smart_timer")){
+		case "1":
+			smart_timer = setInterval("updateSMART()",300000);
+		break	
+		case "2":
+			smart_timer = setInterval("updateSMART()",900000);
+		break	
+		case "3":
+			smart_timer = setInterval("updateSMART()",3600000);
+		break	
+	}
+
+	//if(isIntel && !widget.preferenceForKey("intelFirstRunV3") && iStatNano.needsIntelBundle()){
+	//	document.getElementById("intelInstallWindow").style.display = "block";
+	//	widget.setPreferenceForKey("true","intelFirstRunV3");
+	//}
+
+	function intelButtonClick() {
+		if(!isIntel)
+			return;
+		if(iStatNano.needsIntelBundle()){
+			iStatNano.installIntelModule();
+		}
+	}
+
+	function intelButtonOver() {
+		if(!isIntel)
+			return;
+		if(iStatNano.needsIntelBundle()){
+			intelModuleButton.style.background = "url(./images/back/button_install_rollie.png)";
+		}
+	}
+
+	function intelButtonOut() {
+		if(!isIntel)
+			return;
+			
+		if(iStatNano.needsIntelBundle()){
+			intelModuleButton.style.background = "url(./images/back/button_install.png)";
+		}
+	}
+
+	function changeBarMode(item) {
+		widget.setPreferenceForKey(item.value,"bar_mode");
+		barsMenuText.innerHTML = item.text;
+		change_overview_bar_mode = true;
+		change_cpu_bar_mode = true;
+		change_memory_bar_mode = true;
+		updateCPU();
+		updateMemory();
+		updateOverview();
+	}
+	
+	function changeAnimation(pref) {
+		widget.setPreferenceForKey(pref.toLowerCase(),"animation");
+		animationMenuText.innerHTML = pref;	
+	}
+
+	function changeProcessesMode(item) {
+		widget.setPreferenceForKey(item.value,"processesMode");
+		processesMenuText.innerHTML = item.text;	
+	}
+		
+	function changeDegrees(pref) {
+		widget.setPreferenceForKey(pref,"degrees");
+		if(widget.preferenceForKey("degrees") == 0)
+			degreesMenuText.innerHTML = "Celsius";
+		else if(widget.preferenceForKey("degrees") == 1)
+			degreesMenuText.innerHTML = "Fahrenheit";
+		else if(widget.preferenceForKey("degrees") == 2)
+			degreesMenuText.innerHTML = "Kelvin";
+	}
+	
+	function changeUpdateChecker(item) {
+		clearInterval(updateCheckerTimer);
+		updateCheckerTimer = null;
+		widget.setPreferenceForKey(item.value,"updateChecker");
+		if(widget.preferenceForKey("updateChecker") == "on") {
+			updateCheckerTimer = setInterval("checkForUpdate(0)",86400000);
+		}
+		updateMenuText.innerHTML = item.text;		
+	}
+	
+	function changeDisk0(disk) {
+		widget.setPreferenceForKey(disk,"disk0");
+		disk0MenuText.innerHTML = disk;	
+	}
+
+	function changeDisk1(disk) {
+		widget.setPreferenceForKey(disk,"disk1");
+		disk1MenuText.innerHTML = disk;	
+	}
+
+	function changeDisk2(disk) {
+		widget.setPreferenceForKey(disk,"disk2");
+		disk2MenuText.innerHTML = disk;	
+	}
+
+	function changePrimaryTempSensor(sensor) {
+		widget.setPreferenceForKey(sensor,"primaryTempSensor");
+		tempSensorMenuText.innerHTML = sensor;	
+	}
+
+	function changePrimaryFanSensor(sensor) {
+		widget.setPreferenceForKey(sensor,"primaryFanSensor");
+		fanSensorMenuText.innerHTML = sensor;	
+	}
+
+	function changePrimaryNetworkInterface(sensor) {
+		widget.setPreferenceForKey(sensor,"primaryNetworkInterface");
+		networkInterfaceMenuText.innerHTML = sensor;	
+	}
+	
+	function changeSkin(item) {
+		widget.setPreferenceForKey(item.value,"skinv2");
+		skinMenuText.innerHTML = item.text;		
+		switch(widget.preferenceForKey("skinv2")){
+			case "blue":
+				getElement("skin_css").href = "blue.css";
+			break	
+			case "grey":
+				getElement("skin_css").href = "grey.css";
+			break	
+			case "graphite":
+				getElement("skin_css").href = "graphite.css";
+			break	
+			case "green":
+				getElement("skin_css").href = "green.css";
+			break	
+			case "pink":
+				getElement("skin_css").href = "pink.css";
+			break
+			case "putty":
+				getElement("skin_css").href = "putty.css";
+			break
+			case "red":
+				getElement("skin_css").href = "red.css";
+			break
+		}
+	}
+
+	if(!widget.preferenceForKey("skinv2"))
+		widget.setPreferenceForKey("blue","skinv2");
+
+	switch(widget.preferenceForKey("skinv2")){
+			case "blue":
+				getElement("skin_css").href = "blue.css";
+			break	
+			case "grey":
+				getElement("skin_css").href = "grey.css";
+			break	
+			case "graphite":
+				getElement("skin_css").href = "graphite.css";
+			break	
+			case "green":
+				getElement("skin_css").href = "green.css";
+			break	
+			case "pink":
+				getElement("skin_css").href = "pink.css";
+			break
+			case "putty":
+				getElement("skin_css").href = "putty.css";
+			break
+			case "red":
+				getElement("skin_css").href = "red.css";
+			break
+	}
+
+	var debug = false;
+
+	var cpus;
+	var cpuBars_simple = Array();
+	var cpuBarShadows_simple = Array();
+	var cpuBars_advanced = Array();
+	var cpuBarShadows_advanced = Array();
+	var diskItems = Array();
+	var processItems = Array();
+	var tempItems = Array();
+	var fanItems = Array();
+	var modeButtons = Array();
+	
+	var overviewPosition = 0;
+
+	function onshow() {
+		is_hidden = false;
+		
+		if(backside){
+			checkIntelBundleTimer();
+			return;
+		}
+			
+		if(!(displayTimer)){
+			if(widget.preferenceForKey("mode")=='cpu'){
+				displayTimer = setInterval("updateCPU()",1300);
+				updateCPU();
+			} else if(widget.preferenceForKey("mode")=='overview'){
+				displayTimer = setInterval("updateOverview()",1000);
+			} else if(widget.preferenceForKey("mode")=='mem'){
+				displayTimer = setInterval("updateMemory()",3000);
+			} else if(widget.preferenceForKey("mode")=='hd'){
+				displayTimer = setInterval("updateDisks()",5000);
+				updateDisks();
+			} else if(widget.preferenceForKey("mode")=='battery'){
+				displayTimer = setInterval("updateBattery()",5000);
+				updateBattery();
+			} else if(widget.preferenceForKey("mode")=='net'){
+				displayTimer = setInterval("updateNetwork()",1000);
+				updateNetwork();
+			} else if(widget.preferenceForKey("mode")=='processes'){
+				displayTimer = setInterval("getProcesses()",3000);
+				getProcesses();
+			} else if(widget.preferenceForKey("mode")=='uptime'){
+				displayTimer = setInterval("updateUptime()",3000);
+				updateUptime();
+			} else if(widget.preferenceForKey("mode")=='temps'){
+				displayTimer = setInterval("updateTemps()",3000);
+				updateTemps();
+			} else if(widget.preferenceForKey("mode")=='fans'){
+				displayTimer = setInterval("updateFans()",3000);
+				updateFans();
+			}
+		}
+	}
+	
+	function fireTimer() {
+		if(widget.preferenceForKey("mode")=='cpu'){
+			updateCPU();
+		} else if(widget.preferenceForKey("mode")=='overview'){
+			updateOverview();
+		} else if(widget.preferenceForKey("mode")=='mem'){
+			updateMemory();
+		} else if(widget.preferenceForKey("mode")=='hd'){
+			updateDisks();
+		} else if(widget.preferenceForKey("mode")=='battery'){
+			updateBattery();
+		} else if(widget.preferenceForKey("mode")=='net'){
+			updateNetwork();
+		} else if(widget.preferenceForKey("mode")=='processes'){
+			getProcesses();
+		} else if(widget.preferenceForKey("mode")=='uptime'){
+			updateUptime();
+		} else if(widget.preferenceForKey("mode")=='temps'){
+			updateTemps();
+		} else if(widget.preferenceForKey("mode")=='fans'){
+			updateFans();
+		}		
+	}
+	
+	function onhide(hide) {
+		clearInterval(displayTimer);
+		displayTimer = null;
+		
+		is_hidden = true
+	}
+			
+	function keyUp(event) {
+		if(backside)
+			return;
+
+		if(isSelectorVisible)
+			return;
+			
+		if (event.metaKey)
+			return; 
+
+		if(event.charCode == 63234){
+			if(currentSelection == overviewSection){
+				widget.setPreferenceForKey("temps","mode");
+				selectSectionWithAnimation(tempsSection);
+			} else if(currentSelection == cpuSection){
+				widget.setPreferenceForKey("overview","mode");
+				overviewPosition = 0;
+				selectSectionWithAnimation(overviewSection);
+			} else if(currentSelection == memorySection){
+				widget.setPreferenceForKey("cpu","mode");
+				selectSectionWithAnimation(cpuSection);
+			} else if(currentSelection == disksSection){
+				widget.setPreferenceForKey("mem","mode");
+				selectSectionWithAnimation(memorySection);
+			} else if(currentSelection == batterySection){
+				widget.setPreferenceForKey("uptime","mode");
+				selectSectionWithAnimation(uptimeSection);
+			} else if(currentSelection == networkSection){
+				widget.setPreferenceForKey("hd","mode");
+				selectSectionWithAnimation(disksSection);
+			} else if(currentSelection == processesSection){
+				widget.setPreferenceForKey("net","mode");
+				selectSectionWithAnimation(networkSection);
+			} else if(currentSelection == uptimeSection){
+				widget.setPreferenceForKey("processes","mode");
+				selectSectionWithAnimation(processesSection);
+			} else if(currentSelection == tempsSection){
+				widget.setPreferenceForKey("fans","mode");
+				selectSectionWithAnimation(fansSection);
+			} else if(currentSelection == fansSection){
+				widget.setPreferenceForKey("battery","mode");
+				selectSectionWithAnimation(batterySection);
+			}
+			event.stopPropagation();
+			event.preventDefault();
+			return;
+		} else if(event.charCode == 63235){
+			if(currentSelection == overviewSection){
+				widget.setPreferenceForKey("cpu","mode");
+				selectSectionWithAnimation(cpuSection);
+			} else if(currentSelection == cpuSection){
+				widget.setPreferenceForKey("mem","mode");
+				selectSectionWithAnimation(memorySection);
+			} else if(currentSelection == memorySection){
+				widget.setPreferenceForKey("hd","mode");
+				selectSectionWithAnimation(disksSection);
+			} else if(currentSelection == disksSection){
+				widget.setPreferenceForKey("net","mode");
+				selectSectionWithAnimation(networkSection);
+			} else if(currentSelection == batterySection){
+				widget.setPreferenceForKey("fans","mode");
+				selectSectionWithAnimation(fansSection);
+			} else if(currentSelection == networkSection){
+				widget.setPreferenceForKey("processes","mode");
+				selectSectionWithAnimation(processesSection);
+			} else if(currentSelection == processesSection){
+				widget.setPreferenceForKey("uptime","mode");
+				selectSectionWithAnimation(uptimeSection);
+			} else if(currentSelection == uptimeSection){
+				widget.setPreferenceForKey("battery","mode");
+				selectSectionWithAnimation(batterySection);
+			} else if(currentSelection == tempsSection){
+				widget.setPreferenceForKey("overview","mode");
+				overviewPosition = 0;
+				selectSectionWithAnimation(overviewSection);
+			} else if(currentSelection == fansSection){
+				widget.setPreferenceForKey("temps","mode");
+				selectSectionWithAnimation(tempsSection);
+			}
+			event.stopPropagation();
+			event.preventDefault();
+			return;
+		}
+			
+		event.stopPropagation();
+		event.preventDefault();
+		var realKey = String.fromCharCode(event.charCode).toLowerCase();
+		if(realKey == "0") {
+			widget.setPreferenceForKey("overview","mode");
+			overviewPosition = 0;
+			selectSectionWithAnimation(overviewSection);
+		} else if(realKey == "1") {
+			widget.setPreferenceForKey("cpu","mode");
+			selectSectionWithAnimation(cpuSection);
+		} else if(realKey == "2") {
+			widget.setPreferenceForKey("mem","mode");
+			selectSectionWithAnimation(memorySection);
+		} else if(realKey == "3") {
+			widget.setPreferenceForKey("hd","mode");
+			selectSectionWithAnimation(disksSection);
+		} else if(realKey == "4") {
+			widget.setPreferenceForKey("net","mode");
+			selectSectionWithAnimation(networkSection);
+		} else if(realKey == "5") {
+			widget.setPreferenceForKey("processes","mode");
+			selectSectionWithAnimation(processesSection);
+		} else if(realKey == "6") {
+			widget.setPreferenceForKey("uptime","mode");
+			selectSectionWithAnimation(uptimeSection);
+		} else if(realKey == "7") {
+			widget.setPreferenceForKey("battery","mode");
+			selectSectionWithAnimation(batterySection);
+		} else if(realKey == "8") {
+			widget.setPreferenceForKey("fans","mode");
+			selectSectionWithAnimation(fansSection);
+		} else if(realKey == "9") {
+			widget.setPreferenceForKey("temps","mode");
+			selectSectionWithAnimation(tempsSection);
+		} else if(realKey == "i") {
+			if(valid_ip == true){
+				iStatNano.copyTextToClipboard(extIP);
+				showIPWindow();
+			}
+		}
+		event.stopPropagation();
+		event.preventDefault();
+	}
+
+	function keyDown(event){
+		if (event.metaKey)
+			return;
+
+		event.stopPropagation();
+		event.preventDefault();
+	}	
+</script>
+</html>

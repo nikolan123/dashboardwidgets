@@ -1,0 +1,14 @@
+{
+    "iStat Pro.wdgt": {
+        "name": "iStat Pro",
+        "build-as": ["wdgt", "macosapp"]
+    },
+    "iStat Nano.wdgt": {
+        "name": "iStat Nano",
+        "build-as": ["wdgt", "macosapp"]
+    },
+    "Dashpaste.wdgt": {
+        "name": "Dashpaste",
+        "build-as": ["wdgt", "macosapp"]
+    }
+}
