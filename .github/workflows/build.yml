@@ -5,6 +5,9 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   prepare:
     runs-on: macos-latest
@@ -39,7 +42,7 @@ jobs:
           WIDGET_DIR="${{ matrix.widget }}"
           SAFE_NAME=$(echo "$WIDGET_DIR" | tr -d ' ')
           cd "$WIDGET_DIR"
-          zip -r "../${SAFE_NAME}.zip" .
+          zip -r "../${SAFE_NAME}.wdgt.zip" .
           cd ..
           echo "Zipped ${WIDGET_DIR}"
 
@@ -74,3 +77,39 @@ jobs:
           name: ${{ matrix.widget }}-export
           path: |
             *.zip
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-export'
+          merge-multiple: true
+          path: ./builds_artifacts
+
+      - name: Push to 'builds' branch
+        run: |
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git repo_builds
+          cd repo_builds
+          
+          # Create builds branch if it doesn't exist
+          git checkout builds || git checkout -b builds
+
+          # Clear old files and copy new ones
+          rm -rf *
+          cp ../builds_artifacts/* .
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update builds [skip ci]"
+            git push origin builds
+          else
+            echo "No changes to commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
